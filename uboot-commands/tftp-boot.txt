@@ -44,3 +44,4 @@ run bootcmd_tftp
 # ========================================
 setenv bootcmd 'nboot 0x81800000 0 0x000C0000; bootm 0x81800000'
 saveenv
+/workspaces/t3-t626-pro/openwrt-en7529/openwrt/bin/targets/airoha/en7523
