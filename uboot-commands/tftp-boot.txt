@@ -1,0 +1,46 @@
+# U-Boot Commands: TFTP Boot
+
+# ตั้งค่า network (ครั้งเดียว)
+setenv ipaddr 192.168.1.20
+setenv netmask 255.255.255.0
+setenv serverip 192.168.1.10
+setenv gatewayip 192.168.1.1
+saveenv
+
+# ตั้งค่า TFTP boot parameters
+setenv tftpfile openwrt-en7529-t626pro-initramfs-kernel.bin
+setenv loadaddr 0x81800000
+
+# Test network connection
+ping ${serverip}
+
+# Load kernel via TFTP
+tftpboot ${loadaddr} ${tftpfile}
+
+# Verify image
+iminfo ${loadaddr}
+
+# Boot kernel
+bootm ${loadaddr}
+
+# ========================================
+# Optional: สร้าง boot script สำหรับ auto TFTP boot
+# ========================================
+
+setenv bootcmd_tftp 'echo Booting via TFTP...; tftpboot ${loadaddr} ${tftpfile}; bootm ${loadaddr}'
+saveenv
+
+# ใช้งาน:
+run bootcmd_tftp
+
+# ========================================
+# หรือตั้งเป็น default boot (ระวัง!)
+# ========================================
+# setenv bootcmd 'run bootcmd_tftp'
+# saveenv
+
+# ========================================
+# Reset กลับเป็น NAND boot
+# ========================================
+setenv bootcmd 'nboot 0x81800000 0 0x000C0000; bootm 0x81800000'
+saveenv

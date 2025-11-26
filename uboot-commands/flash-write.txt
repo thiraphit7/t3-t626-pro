@@ -1,0 +1,88 @@
+# U-Boot Commands: Flash Write (NAND)
+
+# ========================================
+# Method 1: Flash via initramfs Linux
+# ========================================
+# (Boot initramfs kernel ก่อน, แล้วใช้คำสั่งใน Linux)
+# ดู FLASH_GUIDE.md
+
+# ========================================
+# Method 2: Flash ตรงจาก U-Boot
+# ========================================
+
+# ตั้งค่า network
+setenv ipaddr 192.168.1.20
+setenv serverip 192.168.1.10
+
+# 1. Flash Kernel
+# ----------------
+# Load kernel via TFTP
+tftpboot 0x81800000 openwrt-airoha-en7523-generic-kernel.bin
+
+# ตรวจสอบขนาด
+printenv filesize
+
+# Erase kernel partition (8MB @ 0xC0000)
+nand erase 0x000C0000 0x00800000
+
+# Write kernel
+nand write 0x81800000 0x000C0000 ${filesize}
+
+# 2. Flash RootFS
+# ----------------
+# Load rootfs via TFTP (ใช้ address อื่นเพื่อไม่ทับ kernel)
+tftpboot 0x82000000 openwrt-airoha-en7523-generic-rootfs.squashfs
+
+# Erase rootfs partition (120MB @ 0x8C0000)
+nand erase 0x008C0000 0x07700000
+
+# Write rootfs
+nand write 0x82000000 0x008C0000 ${filesize}
+
+# 3. ตั้งค่า Boot Arguments
+# ----------------
+setenv bootargs 'console=ttyS0,115200 root=/dev/mtdblock3 rootfstype=squashfs'
+
+# 4. ตั้งค่า Boot Command
+# ----------------
+setenv bootcmd 'nboot 0x81800000 0 0x000C0000; bootm 0x81800000'
+
+# หรือใช้แบบนี้ (ถ้า support nand ใหม่):
+# setenv bootcmd 'nand read 0x81800000 kernel; bootm 0x81800000'
+
+# 5. บันทึกและ Reboot
+# ----------------
+saveenv
+reset
+
+# ========================================
+# Partition Layout Reference (EN7529)
+# ========================================
+# mtd0: u-boot       @ 0x00000000 (512KB)  - DON'T TOUCH!
+# mtd1: u-boot-env   @ 0x00080000 (256KB)
+# mtd2: kernel       @ 0x000C0000 (8MB)
+# mtd3: rootfs       @ 0x008C0000 (120MB)
+# mtd4: config       @ 0x07FC0000 (256KB)
+
+# ========================================
+# Verify Flash (U-Boot)
+# ========================================
+# อ่าน NAND ออกมาดู
+nand dump 0x000C0000
+# หรือ
+md.b 0x000C0000 0x100
+
+# ========================================
+# Recovery - Flash U-Boot env กลับ
+# ========================================
+# ถ้า bootcmd พัง reset ได้:
+env default -a
+setenv bootcmd 'nboot 0x81800000 0 0x000C0000; bootm 0x81800000'
+setenv bootargs 'console=ttyS0,115200 root=/dev/mtdblock3 rootfstype=squashfs'
+saveenv
+
+# ========================================
+# Emergency: Erase All (DANGEROUS!)
+# ========================================
+# nand erase.chip
+# อย่าใช้จริงจนกว่าจำเป็น = brick board!
